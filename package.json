@@ -31,10 +31,12 @@
     "mongodb": "^4.11.0",
     "mongoose": "^6.7.3",
     "morgan": "^1.10.0",
+    "mysql": "^2.18.1",
     "nodemon": "^2.0.21",
     "sharp": "^0.31.2",
     "socket.io": "^4.6.1",
     "socket.io-client": "^4.5.4",
-    "sort-json-array": "^0.1.7"
+    "sort-json-array": "^0.1.7",
+    "web3": "^1.10.0"
   }
 }
