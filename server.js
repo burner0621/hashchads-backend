@@ -16,6 +16,7 @@ var globalDataSocket = require("./sockets/globalDataSocket");
 var pairSwapSocket = require ("./sockets/pairSwapSocket");
 
 var feedRouter = require("./routes/feedRouter");
+var transactionRouter = require("./routes/transactionRouter");
 
 db.mongoose
     .connect(db.url, {
@@ -43,6 +44,7 @@ app.use(cors());
 swapApp.use(cors());
 
 app.use("/api/feed", feedRouter);
+app.use("/api/transaction", transactionRouter);
 
 app.use((req, res, next) => { //doesn't send response just adjusts it
     res.header("Access-Control-Allow-Origin", "*") //* to give access to any origin
