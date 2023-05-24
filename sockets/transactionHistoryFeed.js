@@ -1,5 +1,5 @@
 const fetch = require('cross-fetch')
-const Transaction = require('../models/Transaction');
+const TradeHistory = require('../models/TradeHistory');
 const MIRRORNODE_URL = 'https://mainnet-public.mirrornode.hedera.com'
 let swapData = {}
 
@@ -10,7 +10,8 @@ const sleep = (delay) => {
 
 let nextLink = {}
 let lastTransactioTimestamp = {}
-const pairSwapSocket = (io) => {
+const startTime = Date.now() / 1000 - 86400 * 3
+const pairSwapSocket = () => {
 
     fetch("https://api.saucerswap.finance/pools")
         .then(async (res) => {
@@ -38,14 +39,17 @@ const pairSwapSocket = (io) => {
                     }
 
                     for (let pool of pools) {
-                        let _data = await Transaction.find({ poolId: pool.contractId }).sort({ timestamp: -1 }).limit(1)
-                        if (_data === null || _data === undefined || _data.length === 0) continue
+                        let _data = await TradeHistory.find({ poolId: pool.contractId }).sort({ timestamp: -1 }).limit(1)
+                        if (_data === null || _data === undefined || _data.length === 0) {
+                            lastTransactioTimestamp[pool.contractId] = startTime
+                            continue
+                        }
                         lastTransactioTimestamp[pool.contractId] = _data[0].timestamp
                     }
                     const getSwapData = async () => {
                         for (let pool of pools) {
 
-                            console.log("============", pool.contractId);
+                            console.log("Trade History============", pool.contractId, "============");
                             let response, url = '';
                             if (nextLink[pool.contractId] === undefined) {
                                 if (lastTransactioTimestamp[pool.contractId])
@@ -78,9 +82,9 @@ const pairSwapSocket = (io) => {
                                     //             item1 = transaction['token_transfers'][0]
                                     //         }
 
-                                    //         if ((Number(item0.amount) / Math.abs(Number(item0.amount))) * (Number(item1.amount) / Math.abs(Number(item1.amount))) !== -1) continue
-                                    //         console.log("============================", item0.token_id, decimalObj[item0.token_id], transaction.transaction_id, "============================")
-                                    //         let newData = new Transaction({
+                                    //         if ((Number(item0.amount) / Number(item1.amount)) !== -1) continue
+                                    //         console.log("Trade History ============================", item0.amount, transaction.transaction_id, "============================")
+                                    //         let newData = new TradeHistory({
                                     //             timestamp: transaction.valid_start_timestamp,
                                     //             datetime: transaction.valid_start_timestamp,
                                     //             poolId: pool.contractId,
@@ -92,7 +96,7 @@ const pairSwapSocket = (io) => {
                                     //         });
                                     //         await newData.save();
                                     //         lastTransactioTimestamp[pool.contractId] = transaction.valid_start_timestamp
-                                    //     } 
+                                    //     }
                                     // }
                                     for (let transaction of jsonData.transactions) {
                                         if (lastTransactioTimestamp[pool.contractId] && lastTransactioTimestamp[pool.contractId] >= transaction['valid_start_timestamp']) {
@@ -113,27 +117,27 @@ const pairSwapSocket = (io) => {
                                         if (dic[transactionId].length !== 2) continue
                                         let item0 = dic[transactionId][0]['token_transfers'][1], item1 = dic[transactionId][1]['token_transfers'][1]
                                         let account0 = dic[transactionId][0]['token_transfers'][0], account1 = dic[transactionId][1]['token_transfers'][0]
-                                        if (dic[transactionId][0]['token_transfers'][1]['account'] === pool.contractId){
+                                        if (dic[transactionId][0]['token_transfers'][1]['account'] === pool.contractId) {
                                             item0 = dic[transactionId][0]['token_transfers'][1]
                                             account0 = dic[transactionId][0]['token_transfers'][0]
                                         }
-                                        else if (dic[transactionId][0]['token_transfers'][0]['account'] === pool.contractId){
+                                        else if (dic[transactionId][0]['token_transfers'][0]['account'] === pool.contractId) {
                                             item0 = dic[transactionId][0]['token_transfers'][0]
                                             account0 = dic[transactionId][0]['token_transfers'][1]
                                         }
-                                        if (dic[transactionId][1]['token_transfers'][1]['account'] === pool.contractId){
+                                        if (dic[transactionId][1]['token_transfers'][1]['account'] === pool.contractId) {
                                             item1 = dic[transactionId][1]['token_transfers'][1]
                                             account1 = dic[transactionId][1]['token_transfers'][0]
                                         }
-                                        else if (dic[transactionId][1]['token_transfers'][0]['account'] === pool.contractId){
+                                        else if (dic[transactionId][1]['token_transfers'][0]['account'] === pool.contractId) {
                                             item1 = dic[transactionId][1]['token_transfers'][0]
                                             account1 = dic[transactionId][1]['token_transfers'][1]
                                         }
-                                        if (Math.abs(dic[transactionId][0]['nonce'] - dic[transactionId][1]['nonce']) !== 1) continue
+                                        // if (Math.abs(dic[transactionId][0]['nonce'] - dic[transactionId][1]['nonce']) !== 1) continue
                                         if (item0.account !== pool.contractId || item0.account !== item1.account) continue
                                         if ((Number(item0.amount) / Math.abs(Number(item0.amount))) * (Number(item1.amount) / Math.abs(Number(item1.amount))) !== -1) continue
                                         console.log("============================", transactionId, "============================")
-                                        let newData = new Transaction({
+                                        let newData = new TradeHistory({
                                             timestamp: dic[transactionId][0].valid_start_timestamp,
                                             datetime: dic[transactionId][0].valid_start_timestamp,
                                             poolId: pool.contractId,
@@ -145,7 +149,7 @@ const pairSwapSocket = (io) => {
                                         });
                                         await newData.save();
 
-                                        newData = new Transaction({
+                                        newData = new TradeHistory({
                                             timestamp: dic[transactionId][1].valid_start_timestamp,
                                             datetime: dic[transactionId][1].valid_start_timestamp,
                                             poolId: pool.contractId,
@@ -166,23 +170,12 @@ const pairSwapSocket = (io) => {
 
                             }
                         }
-                        setTimeout(await getSwapData(), 10)
+                        setTimeout(await getSwapData(), 300)
                     }
                     const timeout = setTimeout(async () => {
                         await getSwapData()
-                    }, 10)
-                    io.on('connection', (socket) => {
-                        console.log(`⚡: ${socket.id} user just connected on SwapDataSocket!`);
+                    }, 300)
 
-                        socket.on('getSwapData', (startDailyTimestamp) => {
-                            io.emit('getSwapDataResponse', swapData);
-                        });
-
-                        socket.on('disconnect', () => {
-                            console.log('🔥: A swap user disconnected');
-                            clearInterval(intervalSwap);
-                        });
-                    });
                 });
         })
 

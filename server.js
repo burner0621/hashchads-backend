@@ -14,6 +14,7 @@ const urlencodeParser = bodyParser.urlencoded({ extended: false });
 
 var globalDataSocket = require("./sockets/globalDataSocket");
 var pairSwapSocket = require ("./sockets/pairSwapSocket");
+var transactionHistoryFeed = require ("./sockets/transactionHistoryFeed");
 
 var feedRouter = require("./routes/feedRouter");
 var transactionRouter = require("./routes/transactionRouter");
@@ -93,6 +94,7 @@ const swapIO = new Server(swapHttpServer, {
 
 globalDataSocket(io)
 pairSwapSocket (swapIO)
+transactionHistoryFeed ()
 
 httpServer.listen(config.mainPort, () => {
     console.log(`Server is running on port ${config.mainPort}`);

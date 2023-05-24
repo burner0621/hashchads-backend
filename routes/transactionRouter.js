@@ -11,7 +11,7 @@ router.get("/get", async (req, res) => {
         );
     } catch (err) {
         console.log(err);
-        res.send ([]);
+        res.send ({data: [], count: 0});
     }
 });
 
