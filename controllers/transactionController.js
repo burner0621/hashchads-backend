@@ -25,3 +25,25 @@ module.exports.getTradeHistory = async ({ tokenId, pageNum, pageSize }) => {
 
 
 }
+
+module.exports.getStatistics = async ({tokenId, timeRangeType}) => {
+    let timeStart = 0;
+    let nowDate = Date.now() / 1000;
+    if (timeRangeType === 'five') timeStart = nowDate - 300;
+    else if (timeRangeType === 'hour') timeStart = nowDate - 3600;
+    else if (timeRangeType === 'six') timeStart = nowDate - 3600 * 6;
+    else if (timeRangeType === 'day') timeStart = nowDate - 86400;
+    else if (timeRangeType === 'week') timeStart = nowDate - 86400 * 7;
+    try{
+        let txs = await TradeHistory.find({tokenId: tokenId, timestamp: {$gte: timeStart}}).count();
+        let buys = await TradeHistory.find({tokenId: tokenId, state: 'buy', timestamp: {$gte: timeStart}}).count();
+        let records = await TradeHistory.find({tokenId: tokenId, timestamp: {$gte: timeStart}});
+        let totalVol = 0
+        for (let record of records) {
+            totalVol += Math.abs (Number(record.amount))
+        }
+        return {txs, buys, sells: txs - buys, vol: totalVol}
+    }catch(e) {
+        return {data: [], count: 0}
+    }
+}

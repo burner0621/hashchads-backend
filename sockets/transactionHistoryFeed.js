@@ -172,9 +172,9 @@ const pairSwapSocket = () => {
                         }
                         setTimeout(await getSwapData(), 300)
                     }
-                    const timeout = setTimeout(async () => {
-                        await getSwapData()
-                    }, 300)
+                    // const timeout = setTimeout(async () => {
+                    //     await getSwapData()
+                    // }, 300)
 
                 });
         })

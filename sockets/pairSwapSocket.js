@@ -166,11 +166,11 @@ const pairSwapSocket = (io) => {
 
                             }
                         }
-                        setTimeout(await getSwapData(), 10)
+                        setTimeout(await getSwapData(), 100)
                     }
                     const timeout = setTimeout(async () => {
                         await getSwapData()
-                    }, 10)
+                    }, 100)
                     io.on('connection', (socket) => {
                         console.log(`⚡: ${socket.id} user just connected on SwapDataSocket!`);
 
