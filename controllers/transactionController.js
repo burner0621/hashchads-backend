@@ -4,7 +4,7 @@ const TradeHistory = require("../models/TradeHistory")
 
 const getPagination = (page, size) => {
     const limit = size ? +size : 10;
-    const offset = page ? page * limit : 0;
+    const offset = page ? (page - 1) * limit : 0;
 
     return { limit, offset };
 };
@@ -12,7 +12,7 @@ const getPagination = (page, size) => {
 module.exports.getTradeHistory = async ({ tokenId, pageNum, pageSize }) => {
 
     const { limit, offset } = getPagination(pageNum, pageSize);
-
+    console.log (limit,offset, pageNum, pageSize)
     try{
         // let data = await Transaction.find({tokenId: tokenId}).sort({timestamp: -1}).skip(offset).limit(limit).exec()
         // let count = await Transaction.find({tokenId: tokenId}).count()
