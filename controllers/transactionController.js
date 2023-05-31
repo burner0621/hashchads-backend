@@ -3,7 +3,7 @@ const Transaction = require("../models/Transaction")
 const TradeHistory = require("../models/TradeHistory")
 
 const getPagination = (page, size) => {
-    const limit = size ? +size : 10;
+    const limit = size ? size : 10;
     const offset = page ? (page - 1) * limit : 0;
 
     return { limit, offset };
@@ -12,12 +12,11 @@ const getPagination = (page, size) => {
 module.exports.getTradeHistory = async ({ tokenId, pageNum, pageSize }) => {
 
     const { limit, offset } = getPagination(pageNum, pageSize);
-    console.log (limit,offset, pageNum, pageSize)
     try{
-        // let data = await Transaction.find({tokenId: tokenId}).sort({timestamp: -1}).skip(offset).limit(limit).exec()
-        // let count = await Transaction.find({tokenId: tokenId}).count()
-        let data = await TradeHistory.find({tokenId: tokenId}).sort({timestamp: -1}).skip(offset).limit(limit).exec()
-        let count = await TradeHistory.find({tokenId: tokenId}).count()
+        let data = await Transaction.find({tokenId: tokenId}).sort({timestamp: -1}).skip(offset).limit(limit).exec()
+        let count = await Transaction.find({tokenId: tokenId}).count()
+        // let data = await TradeHistory.find({tokenId: tokenId}).sort({timestamp: -1}).skip(offset).limit(limit).exec()
+        // let count = await TradeHistory.find({tokenId: tokenId}).count()
         return {data, count}
     }catch(e) {
         return {data: [], count: 0}
@@ -35,9 +34,9 @@ module.exports.getStatistics = async ({tokenId, timeRangeType}) => {
     else if (timeRangeType === 'day') timeStart = nowDate - 86400;
     else if (timeRangeType === 'week') timeStart = nowDate - 86400 * 7;
     try{
-        let txs = await TradeHistory.find({tokenId: tokenId, timestamp: {$gte: timeStart}}).count();
-        let buys = await TradeHistory.find({tokenId: tokenId, state: 'buy', timestamp: {$gte: timeStart}}).count();
-        let records = await TradeHistory.find({tokenId: tokenId, timestamp: {$gte: timeStart}});
+        let txs = await Transaction.find({tokenId: tokenId, timestamp: {$gte: timeStart}}).count();
+        let buys = await Transaction.find({tokenId: tokenId, state: 'buy', timestamp: {$gte: timeStart}}).count();
+        let records = await Transaction.find({tokenId: tokenId, timestamp: {$gte: timeStart}});
         let totalVol = 0
         for (let record of records) {
             totalVol += Math.abs (Number(record.amount))
