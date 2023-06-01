@@ -1,4 +1,5 @@
 const fetch = require("cross-fetch");
+const SocialInfo = require("../models/SocialInfo")
 
 module.exports.getFeedData = async ({tokenId, from, to}) => {
     var nowDate = (Date.now())/1000 + 1;
@@ -42,11 +43,16 @@ module.exports.getFeedData = async ({tokenId, from, to}) => {
     }
 }
 
-module.exports.testweb3 = async ({tokenId, from, to}) => {
+module.exports.getSocialInfo = async ({tokenId}) => {
     try {
-        
+        console.log (tokenId)
+        let data = await SocialInfo.find({"Contract ID": tokenId})
+        console.log (data)
+        if (data === null || data === undefined) return {}
+        if (data.length === 0) return {}
+        return data[0]
     } catch (error) {
         console.log (error)
-        return []
+        return {}
     }
 }

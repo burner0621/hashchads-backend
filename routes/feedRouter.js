@@ -16,9 +16,9 @@ router.get("/getfeeddata", async (req, res) => {
     }
 });
 
-router.get("/testweb3", async (req, res) => {
+router.get("/getsocial", async (req, res) => {
     try {
-        let data = await feedController.testweb3();
+        let data = await feedController.getSocialInfo(req.query);
         res.send (
             data
         );
