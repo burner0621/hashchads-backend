@@ -39,7 +39,7 @@ const pairSwapSocket = (io) => {
 
                     let _data = await Transaction.find({}).sort({ timestamp: -1 }).limit(1)
                     if (_data === null || _data === undefined || _data.length === 0) {
-                        lastTransactioTimestamp = Date.now()/1000 - 86400 * 4
+                        lastTransactioTimestamp = undefined
                     } else {
                         lastTransactioTimestamp = _data[0].timestamp
                     }
