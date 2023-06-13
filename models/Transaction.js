@@ -1,7 +1,6 @@
 const mongoose = require('mongoose');
 const TransactionSchema = new mongoose.Schema({
     timestamp: { type: String, default: '' },
-    poolId: {type: String, default: ''},
     accountId: {type: String, default: ''},
     tokenId: { type: String, default: '' },
     amount: { type: String, default: '' },
