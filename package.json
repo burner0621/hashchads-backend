@@ -13,7 +13,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@hashgraph/sdk": "^2.22.0",
+    "@hashgraph/sdk": "^2.26.0",
     "async": "^3.2.4",
     "axios": "^1.2.0",
     "body-parser": "^1.20.1",

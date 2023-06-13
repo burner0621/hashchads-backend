@@ -28,4 +28,16 @@ router.get("/getStatistic", async (req, res) => {
     }
 });
 
+router.get("/gettoptokens", async (req, res) => {
+    try {
+        let data = await transactionController.getTopTokens();
+        res.send (
+            data
+        );
+    } catch (err) {
+        console.log(err);
+        res.send ({data: [], count: 0});
+    }
+});
+
 module.exports = router;

@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const TradeHistorySchema = new mongoose.Schema({
     timestamp: { type: String, default: '' },
-    poolId: {type: String, default: ''},
+    // poolId: {type: String, default: ''},
     accountId: {type: String, default: ''},
     tokenId: { type: String, default: '' },
     price: { type: String, default: '' },

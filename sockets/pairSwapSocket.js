@@ -8,8 +8,8 @@ const sleep = (delay) => {
     while (new Date().getTime() < start + delay);
 }
 
-let nextLink = {}
-let lastTransactioTimestamp = {}
+let nextLink = ''
+let lastTransactioTimestamp = undefined
 const pairSwapSocket = (io) => {
 
     fetch("https://api.saucerswap.finance/pools")
@@ -37,136 +37,143 @@ const pairSwapSocket = (io) => {
                             decimalObj[pool.lpToken.id] = Number(pool.lpToken.decimals)
                     }
 
-                    for (let pool of pools) {
-                        let _data = await Transaction.find({ poolId: pool.contractId }).sort({ timestamp: -1 }).limit(1)
-                        if (_data === null || _data === undefined || _data.length === 0) continue
-                        lastTransactioTimestamp[pool.contractId] = _data[0].timestamp
+                    let _data = await Transaction.find({}).sort({ timestamp: -1 }).limit(1)
+                    if (_data === null || _data === undefined || _data.length === 0) {
+                        lastTransactioTimestamp = Date.now()/1000 - 86400 * 4
+                    } else {
+                        lastTransactioTimestamp = _data[0].timestamp
                     }
                     const getSwapData = async () => {
-                        for (let pool of pools) {
+                        let response, url = '';
+                        if (nextLink === '') {
+                            if (lastTransactioTimestamp)
+                                url = `/api/v1/transactions?timestamp=gt:${lastTransactioTimestamp}&limit=100&transactiontype=CRYPTOTRANSFER&order=asc`
+                            else
+                                url = `/api/v1/transactions?limit=100&transactiontype=CRYPTOTRANSFER&order=asc`
+                        } else {
+                            url = nextLink
+                        }
+                        console.log(`${MIRRORNODE_URL}${url}`)
+                        response = await fetch(`${MIRRORNODE_URL}${url}`)
+                        if (response.status === 200) {
+                            let jsonData = await response.json()
+                            let dic = {}
+                            if (jsonData.transactions && jsonData.transactions.length > 0) {
+                                for (let transaction of jsonData.transactions) {
+                                    if (lastTransactioTimestamp && lastTransactioTimestamp >= transaction['valid_start_timestamp']) {
+                                        continue
+                                    }
 
-                            console.log("============", pool.contractId);
-                            let response, url = '';
-                            if (nextLink[pool.contractId] === undefined) {
-                                if (lastTransactioTimestamp[pool.contractId])
-                                    url = `/api/v1/transactions?account.id=${pool.contractId}&timestamp=gt:${lastTransactioTimestamp[pool.contractId]}&limit=100&transactiontype=CRYPTOTRANSFER&order=asc`
-                                else
-                                    url = `/api/v1/transactions?account.id=${pool.contractId}&limit=100&transactiontype=CRYPTOTRANSFER&order=asc`
-                            } else {
-                                url = nextLink[pool.contractId]
-                            }
-                            console.log(`${MIRRORNODE_URL}${url}`)
-                            // sleep(1000)
-                            response = await fetch(`${MIRRORNODE_URL}${url}`)
-                            console.log(`---------------Fetch Run--------------`)
-                            if (response.status === 200) {
-                                let jsonData = await response.json()
-                                let dic = {}
-                                if (jsonData.transactions && jsonData.transactions.length > 0) {
-                                    // for (let transaction of jsonData.transactions) {
-                                    //     if (lastTransactioTimestamp[pool.contractId] && lastTransactioTimestamp[pool.contractId] >= transaction['valid_start_timestamp']) {
-                                    //         continue
-                                    //     }
-                                    //     let item0, item1;
-                                    //     if (transaction.token_transfers && transaction.token_transfers.length === 2 && transaction.node === null) {
-                                    //         if (transaction['token_transfers'][1]['account'] === pool.contractId) {
-                                    //             item0 = transaction['token_transfers'][0]
-                                    //             item1 = transaction['token_transfers'][1]
-                                    //         }
-                                    //         else if (transaction['token_transfers'][0]['account'] === pool.contractId) {
-                                    //             item0 = transaction['token_transfers'][1]
-                                    //             item1 = transaction['token_transfers'][0]
-                                    //         }
-
-                                    //         if ((Number(item0.amount) / Math.abs(Number(item0.amount))) * (Number(item1.amount) / Math.abs(Number(item1.amount))) !== -1) continue
-                                    //         console.log("============================", item0.token_id, decimalObj[item0.token_id], transaction.transaction_id, "============================")
-                                    //         let newData = new Transaction({
-                                    //             timestamp: transaction.valid_start_timestamp,
-                                    //             datetime: transaction.valid_start_timestamp,
-                                    //             poolId: pool.contractId,
-                                    //             tokenId: item0.token_id,
-                                    //             accountId: item0.account,
-                                    //             amount: Number(item0.amount) / Math.pow(10, decimalObj[item0.token_id]),
-                                    //             state: Number(item0.amount) > 0 ? 'buy' : 'sell',
-                                    //             transactionId: transaction.transaction_id
-                                    //         });
-                                    //         await newData.save();
-                                    //         lastTransactioTimestamp[pool.contractId] = transaction.valid_start_timestamp
-                                    //     } 
-                                    // }
-                                    for (let transaction of jsonData.transactions) {
-                                        if (lastTransactioTimestamp[pool.contractId] && lastTransactioTimestamp[pool.contractId] >= transaction['valid_start_timestamp']) {
-                                            continue
-                                        }
-                                        if (dic[transaction.transaction_id]) {
-                                            if (transaction.token_transfers.length === 2) {
-                                                dic[transaction.transaction_id].push(transaction)
-                                            }
-                                        }
-                                        if (dic[transaction.transaction_id] === undefined) {
-                                            if (transaction.token_transfers && transaction.token_transfers.length === 2) {
-                                                dic[transaction.transaction_id] = [transaction]
-                                            }
+                                    if (transaction.token_transfers === undefined) continue;
+                                    if (dic[transaction.transaction_id]) {
+                                        if (transaction.token_transfers.length === 2) {
+                                            dic[transaction.transaction_id].push(transaction)
                                         }
                                     }
-                                    for (let transactionId in dic) {
-                                        if (dic[transactionId].length !== 2) continue
-                                        let item0 = dic[transactionId][0]['token_transfers'][1], item1 = dic[transactionId][1]['token_transfers'][1]
-                                        let account0 = dic[transactionId][0]['token_transfers'][0], account1 = dic[transactionId][1]['token_transfers'][0]
-                                        if (dic[transactionId][0]['token_transfers'][1]['account'] === pool.contractId){
-                                            item0 = dic[transactionId][0]['token_transfers'][1]
-                                            account0 = dic[transactionId][0]['token_transfers'][0]
+                                    if (dic[transaction.transaction_id] === undefined) {
+                                        if (transaction.token_transfers) {
+                                            dic[transaction.transaction_id] = [transaction]
                                         }
-                                        else if (dic[transactionId][0]['token_transfers'][0]['account'] === pool.contractId){
-                                            item0 = dic[transactionId][0]['token_transfers'][0]
-                                            account0 = dic[transactionId][0]['token_transfers'][1]
+                                    }
+                                }
+                                for (let transactionId in dic) {
+                                    if (dic[transactionId].length === 1) continue
+                                    console.log (`---------------${transactionId}----------------`)
+                                    let account = transactionId.split("-")[0]
+                                    let timestamp = transactionId.split("-")[1] + "." + transactionId.split("-")[2]
+                                    let firstTransaction = dic[transactionId][0]
+                                    let lastTransaction = dic[transactionId][dic[transactionId].length - 1]
+                                    let state = "", buyAmount = 0, sellAmount = 0, position = "", buyToken = "", sellToken="";
+                                    if (firstTransaction.token_transfers[0]["account"] === account || firstTransaction.token_transfers[1]["account"] === account) {
+                                        if (firstTransaction.token_transfers[0]["account"] === account) {
+                                            state = firstTransaction.token_transfers[0]["amount"] > 0 ? "buy" : "sell"
+                                            buyToken = state === "buy" ? firstTransaction.token_transfers[0]["token_id"] : ""
+                                            sellToken = state === "sell" ? firstTransaction.token_transfers[0]["token_id"] : ""
+                                            buyAmount = state === "buy" ? firstTransaction.token_transfers[0]["amount"] : 0
+                                            sellAmount = state === "sell" ? firstTransaction.token_transfers[0]["amount"] : 0
                                         }
-                                        if (dic[transactionId][1]['token_transfers'][1]['account'] === pool.contractId){
-                                            item1 = dic[transactionId][1]['token_transfers'][1]
-                                            account1 = dic[transactionId][1]['token_transfers'][0]
+                                        if (firstTransaction.token_transfers[1]["account"] === account) {
+                                            state = firstTransaction.token_transfers[1]["amount"] > 0 ? "buy" : "sell"
+                                            buyToken = state === "buy" ? firstTransaction.token_transfers[1]["token_id"] : ""
+                                            sellToken = state === "sell" ? firstTransaction.token_transfers[1]["token_id"] : ""
+                                            buyAmount = state === "buy" ? firstTransaction.token_transfers[1]["amount"] : 0
+                                            sellAmount = state === "sell" ? firstTransaction.token_transfers[1]["amount"] : 0
                                         }
-                                        else if (dic[transactionId][1]['token_transfers'][0]['account'] === pool.contractId){
-                                            item1 = dic[transactionId][1]['token_transfers'][0]
-                                            account1 = dic[transactionId][1]['token_transfers'][1]
+                                        position = "first"
+                                    } else if (lastTransaction.token_transfers[0]["account"] === account || lastTransaction.token_transfers[1]["account"] === account) {
+                                        if (lastTransaction.token_transfers[0]["account"] === account) {
+                                            state = lastTransaction.token_transfers[0]["amount"] > 0 ? "buy" : "sell"
+                                            buyToken = state === "buy" ? lastTransaction.token_transfers[0]["token_id"] : ""
+                                            sellToken = state === "sell" ? lastTransaction.token_transfers[0]["token_id"] : ""
+                                            buyAmount = state === "buy" ? lastTransaction.token_transfers[0]["amount"] : 0
+                                            sellAmount = state === "sell" ? lastTransaction.token_transfers[0]["amount"] : 0
                                         }
-                                        if (Math.abs(dic[transactionId][0]['nonce'] - dic[transactionId][1]['nonce']) !== 1) continue
-                                        if (item0.account !== pool.contractId || item0.account !== item1.account) continue
-                                        if ((Number(item0.amount) / Math.abs(Number(item0.amount))) * (Number(item1.amount) / Math.abs(Number(item1.amount))) !== -1) continue
-                                        console.log("============================", transactionId, "============================")
-                                        let newData = new Transaction({
-                                            timestamp: dic[transactionId][0].valid_start_timestamp,
-                                            datetime: dic[transactionId][0].valid_start_timestamp,
-                                            poolId: pool.contractId,
-                                            tokenId: account0.token_id,
-                                            accountId: account0.account,
-                                            amount: Number(account0.amount) / Math.pow(10, decimalObj[account0.token_id]),
-                                            state: Number(account0.amount) > 0 ? 'buy' : 'sell',
-                                            transactionId: transactionId
-                                        });
-                                        await newData.save();
+                                        if (lastTransaction.token_transfers[1]["account"] === account) {
+                                            state = lastTransaction.token_transfers[1]["amount"] > 0 ? "buy" : "sell"
+                                            buyToken = state === "buy" ? lastTransaction.token_transfers[1]["token_id"] : ""
+                                            sellToken = state === "sell" ? lastTransaction.token_transfers[1]["token_id"] : ""
+                                            buyAmount = state === "buy" ? lastTransaction.token_transfers[1]["amount"] : 0
+                                            sellAmount = state === "sell" ? lastTransaction.token_transfers[1]["amount"] : 0
+                                        }
+                                        position = "last"
+                                    }
 
+                                    if (buyAmount === 0 && sellAmount === 0) continue
+
+                                    if (buyAmount === 0) {
+                                        buyAmount = position === "first" ? lastTransaction.token_transfers[0]["amount"] : firstTransaction.token_transfers[0]["amount"]
+                                        buyToken = position === "first" ? lastTransaction.token_transfers[0]["token_id"] : firstTransaction.token_transfers[0]["token_id"]
+                                    } if (sellAmount === 0) {
+                                        sellAmount = position === "first" ? lastTransaction.token_transfers[0]["amount"] : firstTransaction.token_transfers[0]["amount"]
+                                        sellToken = position === "first" ? lastTransaction.token_transfers[0]["token_id"] : firstTransaction.token_transfers[0]["token_id"]
+                                    }
+
+                                    if (decimalObj[buyToken] === undefined) {
+                                        const tokenResponse = await fetch(`${MIRRORNODE_URL}/api/v1/tokens/${buyToken}`)
+                                        if (tokenResponse.status === 200) {
+                                            const tokenData = await tokenResponse.json()
+                                            decimalObj[buyToken] = tokenData["decimals"]
+                                        }
+                                    }
+                                    if (decimalObj[sellToken] === undefined) {
+                                        const tokenResponse = await fetch(`${MIRRORNODE_URL}/api/v1/tokens/${sellToken}`)
+                                        if (tokenResponse.status === 200) {
+                                            const tokenData = await tokenResponse.json()
+                                            decimalObj[sellToken] = tokenData["decimals"]
+                                        }
+                                    }
+
+                                    if (buyAmount !== 0 && sellAmount !== 0) {
                                         newData = new Transaction({
-                                            timestamp: dic[transactionId][1].valid_start_timestamp,
-                                            datetime: dic[transactionId][1].valid_start_timestamp,
-                                            poolId: pool.contractId,
-                                            tokenId: account1.token_id,
-                                            accountId: account1.account,
-                                            amount: Number(account1.amount) / Math.pow(10, decimalObj[account1.token_id]),
-                                            state: Number(account1.amount) > 0 ? 'buy' : 'sell',
+                                            timestamp: firstTransaction.valid_start_timestamp,
+                                            datetime: firstTransaction.valid_start_timestamp,
+                                            tokenId: buyToken,
+                                            accountId: account,
+                                            amount: Math.abs(Number(buyAmount)) / Math.pow(10, decimalObj[buyToken]),
+                                            state: 'buy',
                                             transactionId: transactionId
                                         });
                                         await newData.save();
-                                        lastTransactioTimestamp[pool.contractId] = dic[transactionId][0].valid_start_timestamp
+                                        newData = new Transaction({
+                                            timestamp: firstTransaction.valid_start_timestamp,
+                                            datetime: firstTransaction.valid_start_timestamp,
+                                            tokenId: sellToken,
+                                            accountId: account,
+                                            amount: Math.abs(Number(sellAmount)) / Math.pow(10, decimalObj[sellToken]),
+                                            state: 'sell',
+                                            transactionId: transactionId
+                                        });
+                                        await newData.save();
                                     }
+                                  
+                                    lastTransactioTimestamp = firstTransaction.valid_start_timestamp
                                 }
-                                if (jsonData.links.next === null || jsonData.links.next === "null") {
-                                    continue
-                                }
-                                nextLink[pool.contractId] = jsonData.links.next
-
+                            }
+                            if (jsonData.links.next) {
+                                nextLink = jsonData.links.next
                             }
                         }
-                        setTimeout(await getSwapData(), 100)
+                        setTimeout(async () => await getSwapData(), 100)
                     }
                     const timeout = setTimeout(async () => {
                         await getSwapData()
