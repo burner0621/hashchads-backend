@@ -10,6 +10,7 @@ const sleep = (delay) => {
 
 let nextLink = ''
 let lastTransactioTimestamp = undefined
+let startTime = Date.now()/1000 - 86400 * 30 * 10
 const pairSwapSocket = (io) => {
 
     fetch("https://api.saucerswap.finance/pools")
@@ -39,7 +40,7 @@ const pairSwapSocket = (io) => {
 
                     let _data = await Transaction.find({}).sort({ timestamp: -1 }).limit(1)
                     if (_data === null || _data === undefined || _data.length === 0) {
-                        lastTransactioTimestamp = undefined
+                        lastTransactioTimestamp = startTime
                     } else {
                         lastTransactioTimestamp = _data[0].timestamp
                     }
@@ -64,7 +65,8 @@ const pairSwapSocket = (io) => {
                                         continue
                                     }
 
-                                    if (transaction.token_transfers === undefined) continue;
+                                    if (transaction.token_transfers === undefined ) continue;
+                                    if (transaction.token_transfers.length === 0 ) continue;
                                     if (dic[transaction.transaction_id]) {
                                         if (transaction.token_transfers.length === 2) {
                                             dic[transaction.transaction_id].push(transaction)
@@ -81,6 +83,7 @@ const pairSwapSocket = (io) => {
                                     console.log (`---------------${transactionId}----------------`)
                                     let account = transactionId.split("-")[0]
                                     let timestamp = transactionId.split("-")[1] + "." + transactionId.split("-")[2]
+                                    console.log (dic[transactionId], ">>>>>>>>>>>")
                                     let firstTransaction = dic[transactionId][0]
                                     let lastTransaction = dic[transactionId][dic[transactionId].length - 1]
                                     let state = "", buyAmount = 0, sellAmount = 0, position = "", buyToken = "", sellToken="";
