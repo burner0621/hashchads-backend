@@ -83,7 +83,6 @@ const pairSwapSocket = (io) => {
                                     console.log (`---------------${transactionId}----------------`)
                                     let account = transactionId.split("-")[0]
                                     let timestamp = transactionId.split("-")[1] + "." + transactionId.split("-")[2]
-                                    console.log (dic[transactionId], ">>>>>>>>>>>")
                                     let firstTransaction = dic[transactionId][0]
                                     let lastTransaction = dic[transactionId][dic[transactionId].length - 1]
                                     let state = "", buyAmount = 0, sellAmount = 0, position = "", buyToken = "", sellToken="";
