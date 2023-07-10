@@ -29,6 +29,17 @@ const setStartTimestamp = async () => {
 }
 
 const globalDataSocket = (io) => {
+
+    io.on('connection', (socket) => {
+        socket.on('disconnect', () => {
+            console.log('🔥: A user disconnected');
+        });
+
+        socket.on('visit', async ({socketID}) => {
+            io.emit('visited', Date.now());
+        });
+    });
+
     fetch("https://api.saucerswap.finance/tokens")
         .then(async (res1) => {
             if (res1.status !== 200) {
