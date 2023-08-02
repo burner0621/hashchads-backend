@@ -1,0 +1,14 @@
+[Unit]
+Description=Hashchads Backend
+After=network.target
+Before=nextcloud-web.service
+
+[Service]
+ExecStart=/usr/bin/node /work/hashchads-backend/server.js
+ExecReload=kill $(lsof -t -i:5005)
+Type=simple
+Restart=always
+
+[Install]
+WantedBy=default.target
+RequiredBy=network.target
