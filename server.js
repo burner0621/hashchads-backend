@@ -2,6 +2,7 @@ const express = require("express");
 const http = require("http");
 const app = express();
 const swapApp = express();
+const priceApp = express();
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const path = require('path');
@@ -14,6 +15,7 @@ const urlencodeParser = bodyParser.urlencoded({ extended: false });
 
 var globalDataSocket = require("./sockets/globalDataSocket");
 var pairSwapSocket = require ("./sockets/pairSwapSocket");
+var dailyPriceDataSocket = require ("./sockets/dailyPriceDataSocket");
 var transactionHistoryFeed = require ("./sockets/transactionHistoryFeed");
 
 var feedRouter = require("./routes/feedRouter");
@@ -34,15 +36,20 @@ db.mongoose
 
 app.use(bodyParser.json(), urlencodeParser);
 swapApp.use(bodyParser.json(), urlencodeParser);
+priceApp.use(bodyParser.json(), urlencodeParser);
 app.use(cors({
     origin: '*'
 }));
 swapApp.use(cors({
     origin: '*'
 }));
+priceApp.use(cors({
+    origin: '*'
+}));
 
 app.use(cors());
 swapApp.use(cors());
+priceApp.use(cors());
 
 app.use("/api/feed", feedRouter);
 app.use("/api/transaction", transactionRouter);
@@ -78,6 +85,7 @@ app.get('/', (req, res) => {
 
 const httpServer = http.createServer(app);
 const swapHttpServer = http.createServer(swapApp)
+const priceHttpServer = http.createServer(priceApp)
 
 const io = new Server(httpServer, {
     cors: {
@@ -91,9 +99,16 @@ const swapIO = new Server(swapHttpServer, {
         methods: ['GET', 'POST'],
     },
 });
+const priceIO = new Server(priceHttpServer, {
+    cors: {
+        origin: '*',
+        methods: ['GET', 'POST'],
+    },
+});
 
 globalDataSocket(io)
 pairSwapSocket (swapIO)
+dailyPriceDataSocket (priceIO)
 transactionHistoryFeed ()
 
 httpServer.listen(config.mainPort, () => {
@@ -101,4 +116,7 @@ httpServer.listen(config.mainPort, () => {
 });
 swapHttpServer.listen(config.swapPort, () => {
     console.log(`Server is running on port ${config.swapPort}`);
+});
+priceHttpServer.listen(config.pricePort, () => {
+    console.log(`Server is running on port ${config.pricePort}`);
 });

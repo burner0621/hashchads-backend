@@ -1,25 +1,7 @@
 const fetch = require('cross-fetch')
-const { AccountId, ContractId } = require("@hashgraph/sdk");
-
-const exampleAddress = "0.0.1456985";
-
-// Check if the address is an account or a contract
-if (AccountId.fromString(exampleAddress) instanceof AccountId) {
-  console.log("This is an account address.");
-} else if (ContractId.fromString(exampleAddress) instanceof ContractId) {
-  console.log("This is a contract address.");
-} else {
-  console.log("This is not a valid Hedera address.");
-}
 
 const TradeHistory = require('../models/TradeHistory');
 const MIRRORNODE_URL = 'https://mainnet-public.mirrornode.hedera.com'
-let swapData = {}
-
-const sleep = (delay) => {
-    var start = new Date().getTime();
-    while (new Date().getTime() < start + delay);
-}
 
 let nextLink = ''
 let lastTransactioTimestamp = undefined
@@ -190,9 +172,9 @@ const pairSwapSocket = () => {
                         }
                         setTimeout(async () => await getSwapData(), 300)
                     }
-                    // const timeout = setTimeout(async () => {
-                    //     await getSwapData()
-                    // }, 300)
+                    const timeout = setTimeout(async () => {
+                        await getSwapData()
+                    }, 300)
 
                 });
         })

@@ -3,11 +3,6 @@ const Transaction = require('../models/Transaction');
 const MIRRORNODE_URL = 'https://mainnet-public.mirrornode.hedera.com'
 let swapData = {}
 
-const sleep = (delay) => {
-    var start = new Date().getTime();
-    while (new Date().getTime() < start + delay);
-}
-
 let nextLink = ''
 let lastTransactioTimestamp = undefined
 let startTime = Date.now()/1000 - 86400 * 30 * 10
