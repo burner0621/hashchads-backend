@@ -68,7 +68,7 @@ const pairSwapSocket = () => {
                                         }
                                     }
                                     if (dic[transaction.transaction_id] === undefined) {
-                                        if (transaction.token_transfers) {
+                                        if (transaction.token_transfers && transaction.token_transfers.length > 0) {
                                             dic[transaction.transaction_id] = [transaction]
                                         }
                                     }
